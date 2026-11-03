@@ -1,19 +1,18 @@
 /**
  * Modul Utilitas Penyimpanan Progres Anonim Siswa (storage.js)
- * Memenuhi kriteria privasi dan keamanan:
- * - Hanya menggunakan localStorage (tanpa backend/database luar)
- * - Hanya menyimpan data non-pribadi: ID acak, peran aktif, modul selesai, skor kuis
+ * Sesuai aturan:
+ * - Progres disimpan di localStorage saja
+ * - Data yang boleh disimpan: ID acak, modul selesai, skor kuis, posisi terakhir
  * - Dilarang menyimpan nama, email, nomor telepon, atau data pribadi
- * - Semua operasi dibungkus try/catch agar aplikasi tetap berjalan normal jika storage gagal
+ * - Semua operasi dibungkus try/catch
  * - Menyediakan fungsi hapusSemuaProgres()
  */
 
 const STORAGE_KEYS = {
-  USER_ROLE: 'titralab_user_role', // 'siswa' | 'guru'
-  ANON_STUDENT_ID: 'titralab_anon_student_id', // cth: 'SISWA-4891'
-  COMPLETED_MODULES: 'titralab_completed_modules', // array of module ids
-  QUIZ_PROGRESS: 'titralab_quiz_progress', // { skor, benar, total, tanggal }
-  LAST_POSITION: 'titralab_last_position' // string section ID
+  ANON_STUDENT_ID: 'titralab_anon_student_id',
+  COMPLETED_MODULES: 'titralab_completed_modules',
+  QUIZ_PROGRESS: 'titralab_quiz_progress',
+  LAST_POSITION: 'titralab_last_position'
 };
 
 /**
@@ -30,33 +29,6 @@ export function getOrCreateAnonStudentId() {
     return id;
   } catch (e) {
     return 'SISWA-TAMU';
-  }
-}
-
-/**
- * Dapatkan peran pengguna saat ini ('siswa' | 'guru' | null)
- */
-export function getUserRole() {
-  try {
-    const role = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
-    return role === 'guru' || role === 'siswa' ? role : 'siswa';
-  } catch (e) {
-    return 'siswa';
-  }
-}
-
-/**
- * Simpan peran pengguna ('siswa' | 'guru')
- */
-export function setUserRole(role) {
-  try {
-    if (role === 'guru' || role === 'siswa') {
-      localStorage.setItem(STORAGE_KEYS.USER_ROLE, role);
-      return true;
-    }
-    return false;
-  } catch (e) {
-    return false;
   }
 }
 
@@ -141,7 +113,6 @@ export function saveLastPosition(sectionId) {
  */
 export function hapusSemuaProgres() {
   try {
-    localStorage.removeItem(STORAGE_KEYS.USER_ROLE);
     localStorage.removeItem(STORAGE_KEYS.ANON_STUDENT_ID);
     localStorage.removeItem(STORAGE_KEYS.COMPLETED_MODULES);
     localStorage.removeItem(STORAGE_KEYS.QUIZ_PROGRESS);
@@ -151,4 +122,3 @@ export function hapusSemuaProgres() {
     return false;
   }
 }
-

@@ -2,16 +2,13 @@ import React, { useState, useEffect } from 'react';
 
 /**
  * Komponen Navbar
- * Memuat identitas media "Simulasi PhET", tautan navigasi (Modul, Kalkulator pH, Kuis, Ruang Guru),
- * pemilih/indikator peran Login (Siswa vs Guru), tombol hapus progres, pengganti tema,
- * serta menu responsif untuk layar ponsel.
+ * Memuat identitas media "TitraLab PhET", tautan navigasi (Modul, Kalkulator pH, Kuis),
+ * tombol hapus progres belajar, tombol tema (terang/gelap), dan menu responsif mobile.
  */
 export default function Navbar({ 
   theme, 
   toggleTheme, 
   onNavClick, 
-  userRole = 'siswa', 
-  onOpenLogin,
   onHapusProgres 
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -119,40 +116,11 @@ export default function Navbar({
                 Kuis
               </a>
             </li>
-            {userRole === 'guru' && (
-              <li>
-                <a 
-                  href="#panel-guru" 
-                  className="nav-link nav-link-guru"
-                  onClick={() => handleLinkClick('panel-guru')}
-                >
-                  <span className="nav-dot nav-dot-guru" aria-hidden="true"></span>
-                  Ruang Guru
-                </a>
-              </li>
-            )}
           </ul>
         </nav>
 
-        {/* Aksi Tambahan: Pemisah/Tombol Peran Login, Tema & Mobile Hamburger */}
+        {/* Aksi Navigasi: Pengalih Tema & Tombol Aksi */}
         <div className="nav-actions">
-          {/* Tombol Pemisah / Pemilih Peran Login */}
-          <button
-            type="button"
-            className={`btn-role-badge ${userRole === 'guru' ? 'badge-role-guru' : 'badge-role-siswa'}`}
-            onClick={onOpenLogin}
-            title={`Saat ini masuk sebagai ${userRole === 'guru' ? 'Guru' : 'Siswa'}. Klik untuk beralih peran.`}
-            aria-label={`Mode ${userRole === 'guru' ? 'Guru' : 'Siswa'}. Buka jendela login atau ganti peran.`}
-          >
-            <span className="role-icon" aria-hidden="true">
-              {userRole === 'guru' ? '👨‍🏫' : '👨‍🎓'}
-            </span>
-            <span className="role-text">
-              {userRole === 'guru' ? 'Guru' : 'Siswa'}
-            </span>
-            <span className="role-caret" aria-hidden="true">▾</span>
-          </button>
-
           {/* Pengalih Tema */}
           <button 
             type="button"
@@ -224,26 +192,6 @@ export default function Navbar({
             </button>
           </div>
 
-          {/* Status Login Mobile */}
-          <div className="mobile-role-selector">
-            <div className="mobile-role-info">
-              <span className="role-label">Peran Aktif:</span>
-              <span className="role-current">
-                {userRole === 'guru' ? '👨‍🏫 Guru / Pendidik' : '👨‍🎓 Siswa Peserta Didik'}
-              </span>
-            </div>
-            <button
-              type="button"
-              className="btn btn-secondary-sm"
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                if (onOpenLogin) onOpenLogin();
-              }}
-            >
-              Ganti Peran / Login
-            </button>
-          </div>
-
           <nav aria-label="Navigasi Menu Ponsel">
             <ul className="mobile-nav-list">
               <li>
@@ -276,18 +224,6 @@ export default function Navbar({
                   <span>Kuis Pemahaman</span>
                 </a>
               </li>
-              {userRole === 'guru' && (
-                <li>
-                  <a 
-                    href="#panel-guru" 
-                    className="mobile-nav-link"
-                    onClick={() => handleLinkClick('panel-guru')}
-                  >
-                    <span className="mobile-icon" aria-hidden="true">📋</span>
-                    <span>Ruang Pendidik / Panel Guru</span>
-                  </a>
-                </li>
-              )}
             </ul>
           </nav>
 
