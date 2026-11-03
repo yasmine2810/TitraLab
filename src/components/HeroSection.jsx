@@ -5,7 +5,7 @@ import React, { useState } from 'react';
  * Menampilkan judul media, satu kalimat penjelasan edukatif sains,
  * tombol "Mulai Belajar", serta peraga visual laboratorium virtual interaktif.
  */
-export default function HeroSection({ onMulaiBelajar }) {
+export default function HeroSection({ onMulaiBelajar, onKalkulatorClick }) {
   // Simulator mini interaktif pH untuk menarik antusiasme siswa
   const [phNilai, setPhNilai] = useState(7.0);
 
@@ -64,7 +64,8 @@ export default function HeroSection({ onMulaiBelajar }) {
             </a>
 
             <a 
-              href="#kalkulator-ph" 
+              href="#kalkulator"
+              onClick={onKalkulatorClick} 
               className="btn btn-hero-secondary"
             >
               <svg 

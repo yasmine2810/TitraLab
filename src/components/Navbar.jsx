@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 
 /**
  * Komponen Navbar
- * Memuat identitas media "TitraLab PhET", tautan navigasi (Modul, Kalkulator pH, Kuis),
- * tombol hapus progres belajar, tombol tema (terang/gelap), dan menu responsif mobile.
+ * Navigasi antar halaman (Beranda, Modul, Kalkulator pH, Kuis)
+ * dengan indikator halaman aktif, pengalih tema laboratorium, dan menu responsif mobile.
  */
 export default function Navbar({ 
   theme, 
   toggleTheme, 
-  onNavClick, 
+  activePage = 'beranda', 
+  onNavigate, 
   onHapusProgres 
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -36,10 +37,11 @@ export default function Navbar({
     };
   }, [isMobileMenuOpen]);
 
-  const handleLinkClick = (targetId) => {
+  const handleLinkClick = (pageId, e) => {
+    if (e) e.preventDefault();
     setIsMobileMenuOpen(false);
-    if (onNavClick) {
-      onNavClick(targetId);
+    if (onNavigate) {
+      onNavigate(pageId);
     }
   };
 
@@ -55,7 +57,7 @@ export default function Navbar({
         <a 
           href="#beranda" 
           className="brand"
-          onClick={() => handleLinkClick('beranda')}
+          onClick={(e) => handleLinkClick('beranda', e)}
           aria-label="Simulasi PhET TitraLab Asam Basa - Beranda Kimia SMA Kelas XI"
         >
           <div className="brand-icon-wrapper" aria-hidden="true">
@@ -83,14 +85,26 @@ export default function Navbar({
           </div>
         </a>
 
-        {/* Tautan Navigasi Desktop */}
+        {/* Tautan Navigasi Antar Halaman Desktop */}
         <nav className="nav-desktop" aria-label="Navigasi Utama">
           <ul className="nav-list">
             <li>
               <a 
+                href="#beranda" 
+                className={`nav-link ${activePage === 'beranda' ? 'active' : ''}`}
+                onClick={(e) => handleLinkClick('beranda', e)}
+                aria-current={activePage === 'beranda' ? 'page' : undefined}
+              >
+                <span className="nav-dot" aria-hidden="true"></span>
+                Beranda
+              </a>
+            </li>
+            <li>
+              <a 
                 href="#modul" 
-                className="nav-link"
-                onClick={() => handleLinkClick('modul')}
+                className={`nav-link ${activePage === 'modul' ? 'active' : ''}`}
+                onClick={(e) => handleLinkClick('modul', e)}
+                aria-current={activePage === 'modul' ? 'page' : undefined}
               >
                 <span className="nav-dot" aria-hidden="true"></span>
                 Modul
@@ -98,9 +112,10 @@ export default function Navbar({
             </li>
             <li>
               <a 
-                href="#kalkulator-ph" 
-                className="nav-link"
-                onClick={() => handleLinkClick('kalkulator-ph')}
+                href="#kalkulator" 
+                className={`nav-link ${activePage === 'kalkulator' ? 'active' : ''}`}
+                onClick={(e) => handleLinkClick('kalkulator', e)}
+                aria-current={activePage === 'kalkulator' ? 'page' : undefined}
               >
                 <span className="nav-dot" aria-hidden="true"></span>
                 Kalkulator pH
@@ -109,8 +124,9 @@ export default function Navbar({
             <li>
               <a 
                 href="#kuis" 
-                className="nav-link"
-                onClick={() => handleLinkClick('kuis')}
+                className={`nav-link ${activePage === 'kuis' ? 'active' : ''}`}
+                onClick={(e) => handleLinkClick('kuis', e)}
+                aria-current={activePage === 'kuis' ? 'page' : undefined}
               >
                 <span className="nav-dot" aria-hidden="true"></span>
                 Kuis
@@ -119,7 +135,7 @@ export default function Navbar({
           </ul>
         </nav>
 
-        {/* Aksi Navigasi: Pengalih Tema & Tombol Aksi */}
+        {/* Aksi Navigasi: Pengalih Tema & Tombol Pintas */}
         <div className="nav-actions">
           {/* Pengalih Tema */}
           <button 
@@ -151,9 +167,9 @@ export default function Navbar({
           <a 
             href="#modul" 
             className="btn-nav-action"
-            onClick={() => handleLinkClick('modul')}
+            onClick={(e) => handleLinkClick('modul', e)}
           >
-            Buka Simulasi
+            Buka Modul
           </a>
 
           {/* Tombol Hamburger Mobile */}
@@ -181,7 +197,7 @@ export default function Navbar({
         <div className="mobile-menu-backdrop" onClick={() => setIsMobileMenuOpen(false)}></div>
         <div className="mobile-menu-content">
           <div className="mobile-menu-header">
-            <span className="mobile-menu-label">Navigasi Pembelajaran</span>
+            <span className="mobile-menu-label">Navigasi Halaman Belajar</span>
             <button 
               type="button" 
               className="mobile-close-btn" 
@@ -196,9 +212,19 @@ export default function Navbar({
             <ul className="mobile-nav-list">
               <li>
                 <a 
+                  href="#beranda" 
+                  className={`mobile-nav-link ${activePage === 'beranda' ? 'active' : ''}`}
+                  onClick={(e) => handleLinkClick('beranda', e)}
+                >
+                  <span className="mobile-icon" aria-hidden="true">🏠</span>
+                  <span>Halaman Beranda</span>
+                </a>
+              </li>
+              <li>
+                <a 
                   href="#modul" 
-                  className="mobile-nav-link"
-                  onClick={() => handleLinkClick('modul')}
+                  className={`mobile-nav-link ${activePage === 'modul' ? 'active' : ''}`}
+                  onClick={(e) => handleLinkClick('modul', e)}
                 >
                   <span className="mobile-icon" aria-hidden="true">🧪</span>
                   <span>Tiga Modul Praktikum</span>
@@ -206,9 +232,9 @@ export default function Navbar({
               </li>
               <li>
                 <a 
-                  href="#kalkulator-ph" 
-                  className="mobile-nav-link"
-                  onClick={() => handleLinkClick('kalkulator-ph')}
+                  href="#kalkulator" 
+                  className={`mobile-nav-link ${activePage === 'kalkulator' ? 'active' : ''}`}
+                  onClick={(e) => handleLinkClick('kalkulator', e)}
                 >
                   <span className="mobile-icon" aria-hidden="true">🔢</span>
                   <span>Kalkulator pH Virtual</span>
@@ -217,8 +243,8 @@ export default function Navbar({
               <li>
                 <a 
                   href="#kuis" 
-                  className="mobile-nav-link"
-                  onClick={() => handleLinkClick('kuis')}
+                  className={`mobile-nav-link ${activePage === 'kuis' ? 'active' : ''}`}
+                  onClick={(e) => handleLinkClick('kuis', e)}
                 >
                   <span className="mobile-icon" aria-hidden="true">📝</span>
                   <span>Kuis Pemahaman</span>
@@ -231,7 +257,7 @@ export default function Navbar({
             <a 
               href="#modul" 
               className="btn-full-width"
-              onClick={() => handleLinkClick('modul')}
+              onClick={(e) => handleLinkClick('modul', e)}
             >
               Mulai Eksperimen Virtual
             </a>

@@ -3,9 +3,16 @@ import React from 'react';
 /**
  * Komponen Footer
  * Menampilkan identitas media, atribusi resmi PhET Interactive Simulations,
- * navigasi pintas, dan kepatuhan standar aksesibilitas WCAG AA 4,5:1.
+ * tautan navigasi antar halaman belajar, dan tombol reset progres belajar anonim.
  */
-export default function Footer({ onHapusProgres }) {
+export default function Footer({ onNavigate, onHapusProgres }) {
+  const handleNav = (pageId, e) => {
+    if (onNavigate) {
+      if (e) e.preventDefault();
+      onNavigate(pageId);
+    }
+  };
+
   return (
     <footer className="lab-footer" role="contentinfo">
       <div className="container footer-inner">
@@ -33,12 +40,28 @@ export default function Footer({ onHapusProgres }) {
 
         <div className="footer-nav-groups">
           <div className="footer-col">
-            <span className="footer-col-title">Navigasi Materi</span>
+            <span className="footer-col-title">Navigasi Halaman</span>
             <ul>
-              <li><a href="#beranda">Beranda Utama</a></li>
-              <li><a href="#modul">Tiga Modul Praktikum</a></li>
-              <li><a href="#kalkulator-ph">Kalkulator pH Virtual</a></li>
-              <li><a href="#kuis">Kuis Pemahaman Mandiri</a></li>
+              <li>
+                <a href="#beranda" onClick={(e) => handleNav('beranda', e)}>
+                  Beranda Utama
+                </a>
+              </li>
+              <li>
+                <a href="#modul" onClick={(e) => handleNav('modul', e)}>
+                  Tiga Modul Praktikum
+                </a>
+              </li>
+              <li>
+                <a href="#kalkulator" onClick={(e) => handleNav('kalkulator', e)}>
+                  Kalkulator pH Virtual
+                </a>
+              </li>
+              <li>
+                <a href="#kuis" onClick={(e) => handleNav('kuis', e)}>
+                  Kuis Pemahaman Mandiri
+                </a>
+              </li>
             </ul>
           </div>
 
