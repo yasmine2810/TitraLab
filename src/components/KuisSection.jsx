@@ -1,16 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { daftarSoalKuis } from '../data/kuis';
-import { saveQuizProgress, getQuizProgress } from '../utils/storage';
+import { 
+  saveQuizProgress, 
+  getQuizProgress,
+  saveQuizSubmission,
+  getQuizSubmission,
+  clearQuizSubmission
+} from '../utils/storage';
 
 /**
  * Komponen KuisSection
  * Kuis Pemahaman Asam Basa Kimia SMA Kelas XI
- * Alur Baru:
+ * Fitur:
  * 1. Siswa mengisi seluruh jawaban terlebih dahulu (opsi dapat diubah bebas sebelum dikumpulkan).
- * 2. Kuis memvalidasi bahwa semua butir soal telah terisi.
- * 3. Kunci jawaban, status benar/salah, dan pembahasan lengkap per soal HANYA muncul
- *    setelah siswa mengumpulkan/memeriksa seluruh jawaban kuis.
- * 4. Skor disimpan secara anonim ke localStorage dan kuis dapat diulang kembali dengan pengacakan baru.
+ * 2. Memastikan seluruh soal terisi sebelum dapat disubmit.
+ * 3. Kunci jawaban, status benar/salah, dan pembahasan lengkap per soal muncul setelah submit.
+ * 4. Pengerjaan kuis dan jawaban siswa TERSIMPAN di localStorage sehingga saat halaman di-refresh,
+ *    jawaban dan hasil evaluasi siswa TIDAK hilang.
+ * 5. Tersedia tombol untuk mengulang dan mengacak kembali kuis dari awal.
  */
 export default function KuisSection() {
   const [soalAcak, setSoalAcak] = useState([]);
@@ -29,8 +36,9 @@ export default function KuisSection() {
     return duplikat;
   };
 
-  // Inisialisasi awal atau ulang kuis
-  const inisialisasiKuis = () => {
+  // Buat sesi kuis baru dengan soal dan pilihan teracak
+  const inisialisasiKuisBaru = () => {
+    clearQuizSubmission();
     const teracak = acakArray(daftarSoalKuis).map(soal => ({
       ...soal,
       pilihan: acakArray(soal.pilihan)
@@ -42,8 +50,21 @@ export default function KuisSection() {
     setRiwayatSkor(getQuizProgress());
   };
 
+  // Inisialisasi: pulihkan sesi yang telah disubmit jika ada di localStorage
   useEffect(() => {
-    inisialisasiKuis();
+    const sesiTersimpan = getQuizSubmission();
+    if (sesiTersimpan && sesiTersimpan.sudahDiserahkan) {
+      setSoalAcak(sesiTersimpan.soalAcak);
+      setJawabanSiswa(sesiTersimpan.jawabanSiswa || {});
+      setSudahDiserahkan(true);
+      setRiwayatSkor({
+        skor: sesiTersimpan.skor,
+        benar: sesiTersimpan.benar,
+        total: sesiTersimpan.total
+      });
+    } else {
+      inisialisasiKuisBaru();
+    }
   }, []);
 
   // Saat siswa memilih atau mengganti pilihan opsi
@@ -85,6 +106,17 @@ export default function KuisSection() {
     });
 
     const skor = Math.round((hitungBenar / soalAcak.length) * 100);
+
+    // 3. Simpan pengerjaan kuis lengkap ke localStorage agar tidak hilang saat di-refresh
+    saveQuizSubmission({
+      soalAcak,
+      jawabanSiswa,
+      sudahDiserahkan: true,
+      skor,
+      benar: hitungBenar,
+      total: soalAcak.length
+    });
+
     saveQuizProgress(skor, hitungBenar, soalAcak.length);
     setRiwayatSkor({ skor, benar: hitungBenar, total: soalAcak.length });
     setSudahDiserahkan(true);
@@ -92,6 +124,11 @@ export default function KuisSection() {
 
     // Gulir halus ke hasil kuis
     window.scrollTo({ top: 300, behavior: 'smooth' });
+  };
+
+  const handleUlangiKuis = () => {
+    inisialisasiKuisBaru();
+    window.scrollTo({ top: 200, behavior: 'smooth' });
   };
 
   const totalSoal = soalAcak.length;
@@ -126,7 +163,9 @@ export default function KuisSection() {
             Kuis Pemahaman <span className="text-highlight">Kimia Asam Basa</span>
           </h2>
           <p className="section-subtitle">
-            Jawab seluruh pertanyaan di bawah ini terlebih dahulu. Kunci jawaban, skor evaluasi, dan pembahasan konsep setiap butir soal akan tampil lengkap setelah Anda mengumpulkan jawaban.
+            {sudahDiserahkan 
+              ? 'Hasil pengerjaan dan pembahasan kuis Anda tersimpan aman di peramban ini. Pelajari setiap pembahasan di bawah atau ulangi kuis untuk latihan baru.'
+              : 'Jawab seluruh pertanyaan di bawah ini terlebih dahulu. Kunci jawaban, skor evaluasi, dan pembahasan konsep setiap butir soal akan tampil lengkap setelah Anda mengumpulkan jawaban.'}
           </p>
         </div>
 
@@ -137,7 +176,7 @@ export default function KuisSection() {
               {nilaiAkhir >= 80 ? '🏆' : '📚'}
             </div>
             <div className="summary-content">
-              <span className="summary-badge">Hasil Evaluasi Kuis</span>
+              <span className="summary-badge">Hasil Evaluasi Kuis (Tersimpan)</span>
               <h3 className="summary-title">
                 {nilaiAkhir >= 80 ? 'Hasil Sangat Memuaskan!' : 'Evaluasi Pengerjaan Kuis'}
               </h3>
@@ -153,7 +192,7 @@ export default function KuisSection() {
             <button
               type="button"
               className="btn btn-hero-primary"
-              onClick={inisialisasiKuis}
+              onClick={handleUlangiKuis}
             >
               🔄 Ulangi & Acak Kuis Kembali
             </button>
@@ -164,7 +203,11 @@ export default function KuisSection() {
         <div className="quiz-status-bar">
           <div className="quiz-progress-info">
             <span className="progress-status-text">
-              Status Pengerjaan: <strong>{jumlahTerisi}</strong> dari <strong>{totalSoal}</strong> soal telah terisi
+              {sudahDiserahkan ? (
+                <>Status: <strong>Telah Selesai & Dikumpulkan</strong> (Hasil Tersimpan)</>
+              ) : (
+                <>Status Pengerjaan: <strong>{jumlahTerisi}</strong> dari <strong>{totalSoal}</strong> soal telah terisi</>
+              )}
               {semuaTerisi && !sudahDiserahkan && (
                 <span className="text-ready-pill"> ✓ Siap Dikumpulkan</span>
               )}
@@ -186,7 +229,7 @@ export default function KuisSection() {
             <button
               type="button"
               className="btn btn-secondary-sm"
-              onClick={inisialisasiKuis}
+              onClick={handleUlangiKuis}
               title="Reset jawaban dan acak kembali urutan soal"
             >
               🔄 Reset & Acak Soal
@@ -345,15 +388,15 @@ export default function KuisSection() {
           ) : (
             <div className="submit-box-card submit-box-done">
               <div className="submit-box-info">
-                <span className="submit-info-title">Pembahasan Kuis Telah Ditampilkan</span>
+                <span className="submit-info-title">Pembahasan & Hasil Kuis Tersimpan</span>
                 <p className="submit-info-desc">
-                  Anda dapat meninjau kembali pembahasan di atas atau mengacak kembali butir soal untuk latihan ulang.
+                  Hasil pengerjaan dan kunci jawaban Anda tetap tersimpan meskipun peramban di-refresh. Ingin menguji pemahaman kembali?
                 </p>
               </div>
               <button
                 type="button"
                 className="btn btn-hero-primary"
-                onClick={inisialisasiKuis}
+                onClick={handleUlangiKuis}
               >
                 🔄 Ulangi & Acak Kuis Kembali
               </button>

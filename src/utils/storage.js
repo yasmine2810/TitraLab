@@ -12,6 +12,7 @@ const STORAGE_KEYS = {
   ANON_STUDENT_ID: 'titralab_anon_student_id',
   COMPLETED_MODULES: 'titralab_completed_modules',
   QUIZ_PROGRESS: 'titralab_quiz_progress',
+  QUIZ_SESSION: 'titralab_quiz_session', // Menyimpan pengerjaan & jawaban kuis yang telah disubmit
   LAST_POSITION: 'titralab_last_position'
 };
 
@@ -59,6 +60,58 @@ export function saveQuizProgress(skor, benar, total) {
       waktu: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
     };
     localStorage.setItem(STORAGE_KEYS.QUIZ_PROGRESS, JSON.stringify(data));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Simpan sesi kuis lengkap yang telah disubmit
+ * (soal teracak, jawaban siswa, status penyerahan, dan skor)
+ */
+export function saveQuizSubmission(sessionData) {
+  try {
+    const payload = {
+      soalAcak: sessionData.soalAcak,
+      jawabanSiswa: sessionData.jawabanSiswa,
+      sudahDiserahkan: Boolean(sessionData.sudahDiserahkan),
+      skor: sessionData.skor,
+      benar: sessionData.benar,
+      total: sessionData.total,
+      waktu: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    };
+    localStorage.setItem(STORAGE_KEYS.QUIZ_SESSION, JSON.stringify(payload));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Ambil sesi kuis yang telah disubmit
+ */
+export function getQuizSubmission() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.QUIZ_SESSION);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.sudahDiserahkan && Array.isArray(parsed.soalAcak)) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    // Abaikan galat storage
+  }
+  return null;
+}
+
+/**
+ * Hapus sesi kuis (digunakan saat siswa mengulang/mengacak kuis baru)
+ */
+export function clearQuizSubmission() {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.QUIZ_SESSION);
     return true;
   } catch (e) {
     return false;
@@ -116,6 +169,7 @@ export function hapusSemuaProgres() {
     localStorage.removeItem(STORAGE_KEYS.ANON_STUDENT_ID);
     localStorage.removeItem(STORAGE_KEYS.COMPLETED_MODULES);
     localStorage.removeItem(STORAGE_KEYS.QUIZ_PROGRESS);
+    localStorage.removeItem(STORAGE_KEYS.QUIZ_SESSION);
     localStorage.removeItem(STORAGE_KEYS.LAST_POSITION);
     return true;
   } catch (e) {
