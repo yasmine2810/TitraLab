@@ -4,19 +4,22 @@ import { saveQuizProgress, getQuizProgress } from '../utils/storage';
 
 /**
  * Komponen KuisSection
- * Kuis Pemahaman Asam Basa Interaktif Kimia SMA Kelas XI
- * - Soal dan pilihan diacak saat kuis dimulai
- * - Umpan balik langsung (benar/salah + penjelasan) seketika setelah menjawab
- * - Kunci jawaban tidak ditampilkan sebelum siswa menjawab
- * - Penyimpanan skor anonim ke localStorage dengan try/catch
- * - Siswa dapat mengulang kuis dengan urutan teracak kembali
+ * Kuis Pemahaman Asam Basa Kimia SMA Kelas XI
+ * Alur Baru:
+ * 1. Siswa mengisi seluruh jawaban terlebih dahulu (opsi dapat diubah bebas sebelum dikumpulkan).
+ * 2. Kuis memvalidasi bahwa semua butir soal telah terisi.
+ * 3. Kunci jawaban, status benar/salah, dan pembahasan lengkap per soal HANYA muncul
+ *    setelah siswa mengumpulkan/memeriksa seluruh jawaban kuis.
+ * 4. Skor disimpan secara anonim ke localStorage dan kuis dapat diulang kembali dengan pengacakan baru.
  */
 export default function KuisSection() {
   const [soalAcak, setSoalAcak] = useState([]);
-  const [jawabanUser, setJawabanUser] = useState({}); // { [soalId]: { pilihanId, benar } }
+  const [jawabanSiswa, setJawabanSiswa] = useState({}); // { [soalId]: pilihanId }
+  const [sudahDiserahkan, setSudahDiserahkan] = useState(false);
+  const [pesanValidasi, setPesanValidasi] = useState('');
   const [riwayatSkor, setRiwayatSkor] = useState(null);
 
-  // Fungsi pengacak array (Fisher-Yates Shuffle)
+  // Algoritma Fisher-Yates Shuffle untuk pengacakan soal & opsi
   const acakArray = (arr) => {
     const duplikat = [...arr];
     for (let i = duplikat.length - 1; i > 0; i--) {
@@ -26,14 +29,16 @@ export default function KuisSection() {
     return duplikat;
   };
 
-  // Inisialisasi kuis dengan soal dan opsi teracak
+  // Inisialisasi awal atau ulang kuis
   const inisialisasiKuis = () => {
     const teracak = acakArray(daftarSoalKuis).map(soal => ({
       ...soal,
       pilihan: acakArray(soal.pilihan)
     }));
     setSoalAcak(teracak);
-    setJawabanUser({});
+    setJawabanSiswa({});
+    setSudahDiserahkan(false);
+    setPesanValidasi('');
     setRiwayatSkor(getQuizProgress());
   };
 
@@ -41,39 +46,68 @@ export default function KuisSection() {
     inisialisasiKuis();
   }, []);
 
-  // Saat siswa memilih salah satu pilihan jawaban
-  const handlePilihOpsi = (soal, opsi) => {
-    // Jika soal sudah pernah dijawab, kunci agar tidak bisa gonta-ganti jawaban sembarangan
-    if (jawabanUser[soal.id]) return;
+  // Saat siswa memilih atau mengganti pilihan opsi
+  const handlePilihOpsi = (soalId, pilihanId) => {
+    if (sudahDiserahkan) return; // Kunci pilihan jika kuis sudah diserahkan
 
-    const dataJawaban = {
-      pilihanId: opsi.id,
-      benar: Boolean(opsi.benar)
-    };
+    setJawabanSiswa(prev => ({
+      ...prev,
+      [soalId]: pilihanId
+    }));
+    setPesanValidasi('');
+  };
 
-    const updated = {
-      ...jawabanUser,
-      [soal.id]: dataJawaban
-    };
-    setJawabanUser(updated);
+  // Menyerahkan dan memeriksa jawaban seluruh soal
+  const handlePeriksaJawaban = () => {
+    // 1. Validasi: pastikan semua soal telah terisi
+    const belumTerisi = soalAcak.filter(soal => !jawabanSiswa[soal.id]);
+    if (belumTerisi.length > 0) {
+      setPesanValidasi(
+        `Harap jawab seluruh soal terlebih dahulu! Masih ada ${belumTerisi.length} dari ${soalAcak.length} soal yang belum Anda isi.`
+      );
+      // Gulir ke soal pertama yang belum dijawab
+      const firstUnansweredId = `soal-card-${belumTerisi[0].id}`;
+      const el = document.getElementById(firstUnansweredId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
 
-    // Hitung skor saat ini dan simpan ke localStorage
-    const totalTerjawab = Object.keys(updated).length;
-    let jumlahBenar = 0;
-    Object.values(updated).forEach(j => {
-      if (j.benar) jumlahBenar++;
+    // 2. Hitung jumlah jawaban benar dan skor
+    let hitungBenar = 0;
+    soalAcak.forEach(soal => {
+      const terpilihId = jawabanSiswa[soal.id];
+      const opsi = soal.pilihan.find(p => p.id === terpilihId);
+      if (opsi && opsi.benar) {
+        hitungBenar++;
+      }
     });
 
-    const skorSekarang = Math.round((jumlahBenar / soalAcak.length) * 100);
-    saveQuizProgress(skorSekarang, jumlahBenar, soalAcak.length);
-    setRiwayatSkor({ skor: skorSekarang, benar: jumlahBenar, total: soalAcak.length });
+    const skor = Math.round((hitungBenar / soalAcak.length) * 100);
+    saveQuizProgress(skor, hitungBenar, soalAcak.length);
+    setRiwayatSkor({ skor, benar: hitungBenar, total: soalAcak.length });
+    setSudahDiserahkan(true);
+    setPesanValidasi('');
+
+    // Gulir halus ke hasil kuis
+    window.scrollTo({ top: 300, behavior: 'smooth' });
   };
 
   const totalSoal = soalAcak.length;
-  const jumlahTerjawab = Object.keys(jawabanUser).length;
-  const jumlahBenar = Object.values(jawabanUser).filter(j => j.benar).length;
+  const jumlahTerisi = Object.keys(jawabanSiswa).length;
+  const semuaTerisi = totalSoal > 0 && jumlahTerisi === totalSoal;
+
+  // Hitung hasil jika kuis sudah diserahkan
+  let jumlahBenar = 0;
+  if (sudahDiserahkan) {
+    soalAcak.forEach(soal => {
+      const terpilihId = jawabanSiswa[soal.id];
+      const opsi = soal.pilihan.find(p => p.id === terpilihId);
+      if (opsi && opsi.benar) jumlahBenar++;
+    });
+  }
   const nilaiAkhir = totalSoal > 0 ? Math.round((jumlahBenar / totalSoal) * 100) : 0;
-  const semuaSelesai = totalSoal > 0 && jumlahTerjawab === totalSoal;
 
   return (
     <section className="lab-feature-section" id="kuis" aria-labelledby="quiz-heading">
@@ -89,59 +123,126 @@ export default function KuisSection() {
             <span>Uji Pemahaman Mandiri</span>
           </div>
           <h2 id="quiz-heading" className="section-title">
-            Kuis Interaktif <span className="text-highlight">Kimia Asam Basa</span>
+            Kuis Pemahaman <span className="text-highlight">Kimia Asam Basa</span>
           </h2>
           <p className="section-subtitle">
-            Uji pemahaman Anda mengenai teori asam basa, indikator, perhitungan pH, dan stoikiometri titrasi. Setiap jawaban langsung disertai pembahasan!
+            Jawab seluruh pertanyaan di bawah ini terlebih dahulu. Kunci jawaban, skor evaluasi, dan pembahasan konsep setiap butir soal akan tampil lengkap setelah Anda mengumpulkan jawaban.
           </p>
         </div>
 
-        {/* Bar Progres & Skor Kuis */}
+        {/* Banner Ringkasan Hasil (Tampil Setelah Siswa Memeriksa Jawaban) */}
+        {sudahDiserahkan && (
+          <div className="quiz-summary-banner" role="status">
+            <div className="summary-icon" aria-hidden="true">
+              {nilaiAkhir >= 80 ? '🏆' : '📚'}
+            </div>
+            <div className="summary-content">
+              <span className="summary-badge">Hasil Evaluasi Kuis</span>
+              <h3 className="summary-title">
+                {nilaiAkhir >= 80 ? 'Hasil Sangat Memuaskan!' : 'Evaluasi Pengerjaan Kuis'}
+              </h3>
+              <p className="summary-desc">
+                Skor Akhir Anda: <strong>{nilaiAkhir} / 100</strong> ({jumlahBenar} dari {totalSoal} soal dijawab dengan benar).
+              </p>
+              <p className="summary-tip">
+                {nilaiAkhir >= 80 
+                  ? 'Pemahaman Anda pada konsep teori asam basa dan perhitungan pH sudah sangat baik! Periksa pembahasan setiap butir soal di bawah untuk memperdalam konsep.' 
+                  : 'Tetap semangat! Pelajari pembahasan dan kunci jawaban pada setiap butir soal di bawah, kemudian ulangi kuis untuk memperkuat pemahaman.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn btn-hero-primary"
+              onClick={inisialisasiKuis}
+            >
+              🔄 Ulangi & Acak Kuis Kembali
+            </button>
+          </div>
+        )}
+
+        {/* Bar Status Progres Pengerjaan */}
         <div className="quiz-status-bar">
           <div className="quiz-progress-info">
-            <span>Progres: <strong>{jumlahTerjawab}</strong> dari <strong>{totalSoal}</strong> soal terjawab</span>
+            <span className="progress-status-text">
+              Status Pengerjaan: <strong>{jumlahTerisi}</strong> dari <strong>{totalSoal}</strong> soal telah terisi
+              {semuaTerisi && !sudahDiserahkan && (
+                <span className="text-ready-pill"> ✓ Siap Dikumpulkan</span>
+              )}
+            </span>
             <div className="quiz-progress-track">
               <div 
                 className="quiz-progress-fill" 
-                style={{ width: `${(jumlahTerjawab / (totalSoal || 1)) * 100}%` }}
+                style={{ width: `${(jumlahTerisi / (totalSoal || 1)) * 100}%` }}
               ></div>
             </div>
           </div>
 
           <div className="quiz-status-actions">
-            {riwayatSkor && (
+            {riwayatSkor && !sudahDiserahkan && (
               <span className="badge-saved-score">
-                Nilai Terakhir: <strong>{riwayatSkor.skor}</strong> ({riwayatSkor.benar}/{riwayatSkor.total} benar)
+                Nilai Sebelumnya: <strong>{riwayatSkor.skor}</strong> ({riwayatSkor.benar}/{riwayatSkor.total} benar)
               </span>
             )}
             <button
               type="button"
               className="btn btn-secondary-sm"
               onClick={inisialisasiKuis}
-              title="Acak kembali soal dan ulangi kuis"
+              title="Reset jawaban dan acak kembali urutan soal"
             >
-              🔄 Acak & Ulangi Kuis
+              🔄 Reset & Acak Soal
             </button>
           </div>
         </div>
 
-        {/* Daftar Soal */}
+        {/* Pesan Peringatan Jika Masih Ada Soal yang Belum Terisi */}
+        {pesanValidasi && (
+          <div className="calc-alert-error quiz-validation-alert" role="alert">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <div className="alert-content">
+              <strong>Perhatian:</strong> {pesanValidasi}
+            </div>
+          </div>
+        )}
+
+        {/* Daftar Kartu Soal Kuis */}
         <div className="quiz-container">
           {soalAcak.map((soal, sIdx) => {
-            const statusJawaban = jawabanUser[soal.id];
-            const sudahDijawab = Boolean(statusJawaban);
+            const terpilihId = jawabanSiswa[soal.id];
+            const isAnswered = Boolean(terpilihId);
+            const opsiTerpilih = soal.pilihan.find(p => p.id === terpilihId);
+            const isCorrect = Boolean(opsiTerpilih?.benar);
+
+            // Kelas kartu dinamis
+            let cardClass = 'quiz-card';
+            if (sudahDiserahkan) {
+              cardClass += isCorrect ? ' card-answered-correct' : ' card-answered-wrong';
+            } else if (isAnswered) {
+              cardClass += ' card-selected-active';
+            }
 
             return (
               <div 
                 key={soal.id} 
-                className={`quiz-card ${sudahDijawab ? (statusJawaban.benar ? 'card-answered-correct' : 'card-answered-wrong') : ''}`}
+                id={`soal-card-${soal.id}`}
+                className={cardClass}
               >
+                {/* Header Soal */}
                 <div className="quiz-question-header">
                   <div className="quiz-q-meta">
                     <span className="question-number">Nomor {sIdx + 1}</span>
-                    {sudahDijawab && (
-                      <span className={`status-pill ${statusJawaban.benar ? 'pill-correct' : 'pill-wrong'}`}>
-                        {statusJawaban.benar ? '✓ Jawaban Anda Benar' : '✕ Jawaban Anda Kurang Tepat'}
+
+                    {/* Status Badge */}
+                    {!sudahDiserahkan ? (
+                      <span className={`status-pill ${isAnswered ? 'pill-filled' : 'pill-empty'}`}>
+                        {isAnswered ? '✓ Terjawab' : 'Belum Dijawab'}
+                      </span>
+                    ) : (
+                      <span className={`status-pill ${isCorrect ? 'pill-correct' : 'pill-wrong'}`}>
+                        {isCorrect ? '✓ Jawaban Anda Benar' : '✕ Jawaban Anda Kurang Tepat'}
                       </span>
                     )}
                   </div>
@@ -149,16 +250,20 @@ export default function KuisSection() {
                 </div>
 
                 {/* Pilihan Jawaban */}
-                <div className="quiz-options" role="radiogroup" aria-labelledby={`soal-text-${soal.id}`}>
+                <div className="quiz-options" role="radiogroup" aria-labelledby={`soal-card-${soal.id}`}>
                   {soal.pilihan.map((pil, pIdx) => {
-                    const isSelected = statusJawaban?.pilihanId === pil.id;
+                    const isSelected = terpilihId === pil.id;
                     let optionClass = 'quiz-option';
 
-                    if (sudahDijawab) {
+                    if (!sudahDiserahkan) {
+                      // Fase pengerjaan: hanya tandai yang sedang dipilih siswa
+                      if (isSelected) optionClass += ' selected';
+                    } else {
+                      // Fase hasil: tampilkan kunci dan status jawaban
                       if (pil.benar) {
-                        optionClass += ' correct';
+                        optionClass += ' correct'; // Kunci jawaban selalu hijau
                       } else if (isSelected && !pil.benar) {
-                        optionClass += ' wrong';
+                        optionClass += ' wrong'; // Pilihan salah siswa berwarna merah
                       } else {
                         optionClass += ' dimmed';
                       }
@@ -170,30 +275,36 @@ export default function KuisSection() {
                         type="button"
                         role="radio"
                         aria-checked={isSelected}
-                        disabled={sudahDijawab}
+                        disabled={sudahDiserahkan}
                         className={optionClass}
-                        onClick={() => handlePilihOpsi(soal, pil)}
+                        onClick={() => handlePilihOpsi(soal.id, pil.id)}
                       >
                         <span className="option-alpha">
                           {String.fromCharCode(65 + pIdx)}
                         </span>
                         <span className="option-label">{pil.teks}</span>
-                        {sudahDijawab && pil.benar && (
-                          <span className="option-mark" aria-hidden="true">✓ Kunci</span>
+
+                        {/* Indikator hanya tampil setelah kuis diserahkan */}
+                        {sudahDiserahkan && pil.benar && (
+                          <span className="option-mark mark-correct" aria-hidden="true">
+                            ✓ Kunci Jawaban Benar
+                          </span>
                         )}
-                        {sudahDijawab && isSelected && !pil.benar && (
-                          <span className="option-mark" aria-hidden="true">✕ Pilihan Anda</span>
+                        {sudahDiserahkan && isSelected && !pil.benar && (
+                          <span className="option-mark mark-wrong" aria-hidden="true">
+                            ✕ Pilihan Anda
+                          </span>
                         )}
                       </button>
                     );
                   })}
                 </div>
 
-                {/* Umpan Balik Tepat Setelah Siswa Menjawab */}
-                {sudahDijawab && (
-                  <div className={`quiz-feedback-box ${statusJawaban.benar ? 'feedback-correct' : 'feedback-wrong'}`}>
+                {/* Umpan Balik Penjelasan Konsep Setiap Butir Soal (HANYA MUNCUL SETELAH DISERAHKAN) */}
+                {sudahDiserahkan && (
+                  <div className={`quiz-feedback-box ${isCorrect ? 'feedback-correct' : 'feedback-wrong'}`}>
                     <div className="feedback-badge">
-                      {statusJawaban.benar ? '🎉 Penjelasan Konsep:' : '💡 Pembahasan & Koreksi Konsep:'}
+                      {isCorrect ? '🎉 Penjelasan Konsep:' : '💡 Pembahasan & Koreksi Konsep:'}
                     </div>
                     <p className="feedback-text">{soal.pembahasan}</p>
                   </div>
@@ -201,20 +312,42 @@ export default function KuisSection() {
               </div>
             );
           })}
+        </div>
 
-          {/* Ringkasan Akhir Saat Semua Soal Terjawab */}
-          {semuaSelesai && (
-            <div className="quiz-summary-banner" role="status">
-              <div className="summary-icon" aria-hidden="true">🏆</div>
-              <div className="summary-content">
-                <h3 className="summary-title">Luar Biasa! Anda Telah Menyelesaikan Kuis</h3>
-                <p className="summary-desc">
-                  Skor Akhir Anda: <strong>{nilaiAkhir} / 100</strong> ({jumlahBenar} dari {totalSoal} soal dijawab dengan benar).
+        {/* Bar Aksi Bawah: Tombol Periksa Jawaban atau Ulangi Kuis */}
+        <div className="quiz-submit-action-area">
+          {!sudahDiserahkan ? (
+            <div className="submit-box-card">
+              <div className="submit-box-info">
+                <span className="submit-info-title">
+                  {semuaTerisi 
+                    ? '🎉 Seluruh soal telah berhasil Anda jawab!' 
+                    : `⚠️ Masih ada ${totalSoal - jumlahTerisi} soal yang belum Anda isi.`}
+                </span>
+                <p className="submit-info-desc">
+                  {semuaTerisi
+                    ? 'Klik tombol di bawah ini untuk memeriksa jawaban, melihat perolehan skor, dan membuka pembahasan setiap butir soal.'
+                    : 'Pastikan seluruh soal telah Anda jawab dengan lengkap sebelum memeriksa jawaban.'}
                 </p>
-                <p className="summary-tip">
-                  {nilaiAkhir >= 80 
-                    ? 'Pemahaman Anda pada materi Asam Basa sangat solid! Terus pertahankan di modul praktikum PhET berikutnya.' 
-                    : 'Bagus! Pelajari kembali pembahasan di atas dan ulangi kuis untuk memantapkan konsep kimia Anda.'}
+              </div>
+
+              <button
+                type="button"
+                className={`btn btn-hero-primary btn-submit-quiz ${!semuaTerisi ? 'btn-disabled-hint' : ''}`}
+                onClick={handlePeriksaJawaban}
+              >
+                <span>Periksa Jawaban Kuis ({jumlahTerisi}/{totalSoal})</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <div className="submit-box-card submit-box-done">
+              <div className="submit-box-info">
+                <span className="submit-info-title">Pembahasan Kuis Telah Ditampilkan</span>
+                <p className="submit-info-desc">
+                  Anda dapat meninjau kembali pembahasan di atas atau mengacak kembali butir soal untuk latihan ulang.
                 </p>
               </div>
               <button
@@ -222,7 +355,7 @@ export default function KuisSection() {
                 className="btn btn-hero-primary"
                 onClick={inisialisasiKuis}
               >
-                Ulangi Kuis Sekarang
+                🔄 Ulangi & Acak Kuis Kembali
               </button>
             </div>
           )}
@@ -231,4 +364,3 @@ export default function KuisSection() {
     </section>
   );
 }
-
