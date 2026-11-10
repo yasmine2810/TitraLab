@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
 import Footer from './components/Footer';
 import LoginPage from './pages/LoginPage';
 import Beranda from './pages/Beranda';
 import Modul from './pages/Modul';
 import Kalkulator from './pages/Kalkulator';
 import Kuis from './pages/Kuis';
+import UserProfile from './pages/UserProfile';
+import PanelGuru from './pages/PanelGuru';
 import { 
   getOrCreateAnonStudentId, 
   getCompletedModules, 
@@ -22,7 +24,7 @@ import './App.css';
  * Komponen Utama App
  * Menangani:
  * 1. Gerbang Autentikasi Awal (LoginPage: Login, Register, Lupa Sandi, Remember Sandi)
- * 2. Navigasi Antar Halaman (Beranda, Modul, Kalkulator pH, Kuis)
+ * 2. Navigasi Antar Halaman dengan Sidebar Kiri Modern (Sesuai Desain Acuan Dark Mode Sidebar)
  * 3. Sinkronisasi URL Hash & Penyimpanan Progres Pembelajaran
  */
 export default function App() {
@@ -31,6 +33,8 @@ export default function App() {
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [currentPage, setCurrentPage] = useState('beranda');
   const [completedModules, setCompletedModules] = useState([]);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Fungsi penentu halaman dari hash URL
   const getPageFromHash = () => {
@@ -38,6 +42,8 @@ export default function App() {
     if (hash === '#modul') return 'modul';
     if (hash === '#kalkulator' || hash === '#kalkulator-ph') return 'kalkulator';
     if (hash === '#kuis') return 'kuis';
+    if (hash === '#profile' || hash === '#user-profile') return 'profile';
+    if (hash === '#panel-guru' || hash === '#guru') return 'panel-guru';
     return 'beranda';
   };
 
@@ -129,9 +135,9 @@ export default function App() {
 
   // JIKA SUDAH LOGIN: Tampilkan Seluruh Media Pembelajaran TitraLab PhET
   return (
-    <div className="beranda-wrapper">
-      {/* 1. Navbar Navigasi Terpadu Antar Halaman */}
-      <Navbar 
+    <div className={`app-shell-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>
+      {/* 1. Sidebar Navigasi Kiri (Dark Mode Sidebar Sesuai Gambar Referensi) */}
+      <Sidebar 
         theme={theme} 
         toggleTheme={toggleTheme} 
         activePage={currentPage}
@@ -139,36 +145,85 @@ export default function App() {
         onHapusProgres={handleHapusProgres}
         currentUser={currentUser}
         onLogout={handleLogout}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+        isMobileOpen={isMobileSidebarOpen}
+        setIsMobileOpen={setIsMobileSidebarOpen}
       />
 
-      {/* 2. Kontainer Konten Halaman Aktif */}
-      <main id="konten-utama" tabIndex="-1">
-        {currentPage === 'beranda' && (
-          <Beranda onNavigate={navigate} />
-        )}
+      {/* 2. Area Konten Utama Aplikasi (Di Sebelah Kanan Sidebar) */}
+      <div className="app-main-viewport">
+        {/* Mobile Header Bar (Hanya tampil di layar ponsel/tablet < 860px) */}
+        <header className="mobile-header-bar">
+          <button
+            type="button"
+            className="mobile-sidebar-toggle-btn"
+            onClick={() => setIsMobileSidebarOpen(true)}
+            aria-label="Buka menu navigasi sidebar"
+          >
+            <span className="hamburger-line"></span>
+            <span className="hamburger-line"></span>
+            <span className="hamburger-line"></span>
+          </button>
+          
+          <div className="mobile-brand-title">
+            <span>TitraLab <strong className="highlight-cyan">PhET</strong></span>
+          </div>
 
-        {currentPage === 'modul' && (
-          <Modul 
-            completedModules={completedModules}
-            onModuleCompleted={(updated) => setCompletedModules(updated)}
-            onNavigate={navigate}
-          />
-        )}
+          <button
+            type="button"
+            className="mobile-theme-btn"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Ganti ke mode terang' : 'Ganti ke mode gelap'}
+            title={theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'}
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+        </header>
 
-        {currentPage === 'kalkulator' && (
-          <Kalkulator onNavigate={navigate} />
-        )}
+        {/* Kontainer Konten Halaman Aktif */}
+        <main id="konten-utama" tabIndex="-1" className="main-content-flow">
+          {currentPage === 'beranda' && (
+            <Beranda onNavigate={navigate} />
+          )}
 
-        {currentPage === 'kuis' && (
-          <Kuis onNavigate={navigate} />
-        )}
-      </main>
+          {currentPage === 'modul' && (
+            <Modul 
+              completedModules={completedModules}
+              onModuleCompleted={(updated) => setCompletedModules(updated)}
+              onNavigate={navigate}
+            />
+          )}
 
-      {/* 3. Footer Terpadu dengan Atribusi Resmi PhET */}
-      <Footer 
-        onNavigate={navigate}
-        onHapusProgres={handleHapusProgres}
-      />
+          {currentPage === 'kalkulator' && (
+            <Kalkulator onNavigate={navigate} />
+          )}
+
+          {currentPage === 'kuis' && (
+            <Kuis onNavigate={navigate} />
+          )}
+
+          {currentPage === 'profile' && (
+            <UserProfile 
+              currentUser={currentUser}
+              onNavigate={navigate}
+              onLogout={handleLogout}
+              onHapusProgres={handleHapusProgres}
+              onUpdateUser={(updatedUser) => setCurrentUser(updatedUser)}
+            />
+          )}
+
+          {currentPage === 'panel-guru' && (
+            <PanelGuru onNavigate={navigate} />
+          )}
+        </main>
+
+        {/* 3. Footer Terpadu dengan Atribusi Resmi PhET */}
+        <Footer 
+          onNavigate={navigate}
+          onHapusProgres={handleHapusProgres}
+        />
+      </div>
     </div>
   );
 }

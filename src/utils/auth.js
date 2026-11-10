@@ -246,7 +246,7 @@ export async function loginUser(email, password, rememberMe = false) {
     );
 
     if (!user) {
-      return { success: false, message: 'Email atau kata sandi tidak cocok. Silakan periksa kembali atau gunakan akun demo.' };
+      return { success: false, message: 'Email atau kata sandi tidak cocok. Silakan periksa kembali.' };
     }
 
     const sessionPayload = {
@@ -540,6 +540,61 @@ export function loginAsGuest() {
     return guestUser;
   } catch (e) {
     return { name: 'Siswa Tamu', email: 'tamu@titralab.id', initial: 'T', isGuest: true };
+  }
+}
+
+/**
+ * Perbarui Nama Tampilan Pengguna
+ */
+export async function updateUserProfileName(newName) {
+  const cleanName = (newName || '').trim();
+  if (!cleanName) {
+    return { success: false, message: 'Nama lengkap tidak boleh kosong.' };
+  }
+
+  if (isFirebaseConfigured && auth && auth.currentUser) {
+    try {
+      await updateProfile(auth.currentUser, { displayName: cleanName });
+    } catch (e) {
+      console.warn('Gagal memperbarui profil Firebase:', e);
+    }
+  }
+
+  try {
+    const session = getCurrentSession() || {};
+    const updatedUser = {
+      ...session,
+      name: cleanName,
+      initial: cleanName.charAt(0).toUpperCase()
+    };
+
+    const payload = {
+      user: updatedUser,
+      loginTime: new Date().toISOString()
+    };
+
+    if (localStorage.getItem(AUTH_STORAGE_KEYS.SESSION)) {
+      localStorage.setItem(AUTH_STORAGE_KEYS.SESSION, JSON.stringify(payload));
+    }
+    if (sessionStorage.getItem(AUTH_STORAGE_KEYS.SESSION)) {
+      sessionStorage.setItem(AUTH_STORAGE_KEYS.SESSION, JSON.stringify(payload));
+    }
+
+    // Perbarui juga di daftar pengguna terdaftar lokal jika cocok
+    const users = getRegisteredUsers();
+    const idx = users.findIndex(u => u.email && updatedUser.email && u.email.toLowerCase() === updatedUser.email.toLowerCase());
+    if (idx !== -1) {
+      users[idx].name = cleanName;
+      saveRegisteredUsers(users);
+    }
+
+    return {
+      success: true,
+      message: 'Nama profil berhasil diperbarui.',
+      user: updatedUser
+    };
+  } catch (e) {
+    return { success: false, message: 'Gagal menyimpan perubahan ke peramban.' };
   }
 }
 

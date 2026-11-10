@@ -182,6 +182,32 @@ export default function Beranda({ onNavigate }) {
           </div>
         </div>
       </section>
+
+      {/* 4. Seksi Khusus Guru Kimia (Perangkat Ajar & Monitoring) */}
+      <section className="guru-portal-banner-section" aria-labelledby="guru-banner-heading">
+        <div className="container">
+          <div className="guru-banner-card">
+            <div className="guru-banner-text">
+              <span className="badge-guru-tag">👨‍🏫 Ruang Pendidik</span>
+              <h3 id="guru-banner-heading" className="guru-banner-heading">
+                Mendampingi Praktikum Virtual Kimia Asam Basa?
+              </h3>
+              <p className="guru-banner-desc">
+                Akses Panel Guru untuk memantau rekapitulasi ketuntasan siswa, melihat kunci jawaban kuis resmi, menyalin Lembar Kerja Siswa (LKPD), dan memanfaatkan preset demonstrasi di depan kelas.
+              </p>
+            </div>
+            <div className="guru-banner-btn-wrap">
+              <button
+                type="button"
+                className="btn btn-guru-cta"
+                onClick={() => onNavigate && onNavigate('panel-guru')}
+              >
+                Buka Panel Guru →
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

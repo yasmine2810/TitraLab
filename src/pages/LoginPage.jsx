@@ -3,7 +3,6 @@ import {
   loginUser, 
   registerUser, 
   resetPassword, 
-  loginAsGuest, 
   getRememberedEmail,
   getGoogleAccounts,
   addGoogleAccount,
@@ -46,9 +45,8 @@ export default function LoginPage({ onLoginSuccess }) {
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
   const [showForgotPass, setShowForgotPass] = useState(false);
 
-  // State Dialog Pilihan Akun Google & Modal Petunjuk Firebase
+  // State Dialog Pilihan Akun Google
   const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const [showConfigModal, setShowConfigModal] = useState(false);
   const [googleAccountsList, setGoogleAccountsList] = useState([]);
   const [connectingGoogleId, setConnectingGoogleId] = useState(null);
   const [showAddGoogle, setShowAddGoogle] = useState(false);
@@ -69,9 +67,6 @@ export default function LoginPage({ onLoginSuccess }) {
     if (remembered) {
       setLoginEmail(remembered);
       setRememberMe(true);
-    } else {
-      setLoginEmail('siswa@titralab.id');
-      setLoginPassword('kimia123');
     }
     setGoogleAccountsList(getGoogleAccounts());
   }, []);
@@ -173,15 +168,7 @@ export default function LoginPage({ onLoginSuccess }) {
     }
   };
 
-  // 4. Masuk Cepat sebagai Siswa Tamu
-  const handleGuestEntry = () => {
-    const guestUser = loginAsGuest();
-    if (onLoginSuccess) {
-      onLoginSuccess(guestUser);
-    }
-  };
-
-  // 5. Eksekusi Masuk dengan Google (Popup Resmi Firebase / Akun Chooser)
+  // 4. Eksekusi Masuk dengan Google (Popup Resmi Firebase / Akun Chooser)
   const handleGoogleAuthClick = async () => {
     clearMessages();
     if (isFirebaseConfigured) {
@@ -235,14 +222,6 @@ export default function LoginPage({ onLoginSuccess }) {
     }
   };
 
-  // Isi Otomatis Akun Demo
-  const handleAutoFillDemo = () => {
-    setLoginEmail('siswa@titralab.id');
-    setLoginPassword('kimia123');
-    setRememberMe(true);
-    clearMessages();
-  };
-
   return (
     <div className="auth-fullscreen-wrap">
       {/* Latar Belakang Ambient Glow */}
@@ -272,27 +251,6 @@ export default function LoginPage({ onLoginSuccess }) {
                 <span className="auth-brand-name">TitraLab <span className="highlight-cyan">PhET</span></span>
                 <span className="auth-brand-sub">Kimia Asam Basa • SMA XI</span>
               </div>
-            </div>
-
-            {/* Indikator Status Integrasi Firebase */}
-            <div className="auth-firebase-badge-row">
-              {isFirebaseConfigured ? (
-                <div className="firebase-status-pill status-active" title="Terhubung ke Firebase Cloud">
-                  <span className="status-indicator-dot dot-active"></span>
-                  <span>Firebase Auth Aktif (Cloud)</span>
-                </div>
-              ) : (
-                <button 
-                  type="button" 
-                  className="firebase-status-pill status-notice" 
-                  onClick={() => setShowConfigModal(true)}
-                  title="Klik untuk melihat cara menyambungkan kredensial Firebase"
-                >
-                  <span className="status-indicator-dot dot-notice"></span>
-                  <span>Siapkan Kredensial Firebase (.env)</span>
-                  <span className="status-pill-arrow">⚙️</span>
-                </button>
-              )}
             </div>
 
             {/* Kotak Pesan Status Sukses atau Galat */}
@@ -462,18 +420,6 @@ export default function LoginPage({ onLoginSuccess }) {
                   </span>
                 </button>
 
-                {/* Pintasan Akun Demo & Opsi Tamu */}
-                <div className="auth-quick-tools">
-                  <button
-                    type="button"
-                    className="btn-demo-autofill"
-                    onClick={handleAutoFillDemo}
-                    title="Gunakan akun demo siswa@titralab.id"
-                  >
-                    <span>⚡ Akun Demo Pengujian (siswa@titralab.id / kimia123)</span>
-                  </button>
-                </div>
-
                 {/* Link Pindah ke Register */}
                 <div className="auth-switch-footer">
                   <span>Not registered yet? </span>
@@ -486,17 +432,6 @@ export default function LoginPage({ onLoginSuccess }) {
                     }}
                   >
                     Create an account
-                  </button>
-                </div>
-
-                {/* Akses Masuk Tamu */}
-                <div className="auth-guest-option">
-                  <button
-                    type="button"
-                    className="btn-guest-entry"
-                    onClick={handleGuestEntry}
-                  >
-                    Masuk Langsung sebagai Tamu (Eksplorasi Bebas) →
                   </button>
                 </div>
               </form>
@@ -1053,92 +988,6 @@ export default function LoginPage({ onLoginSuccess }) {
                   onClick={() => setShowGoogleModal(false)}
                 >
                   Tutup / Batal
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ============================================================
-          MODAL DIALOG: PANDUAN INTEGRASI KREDENSIAL FIREBASE
-          ============================================================ */}
-      {showConfigModal && (
-        <div 
-          className="google-modal-overlay" 
-          role="dialog" 
-          aria-modal="true" 
-          aria-labelledby="firebase-modal-title"
-          onClick={() => setShowConfigModal(false)}
-        >
-          <div 
-            className="google-picker-card firebase-config-card" 
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="google-picker-header">
-              <span className="firebase-config-icon" aria-hidden="true">🔥</span>
-              <h2 id="firebase-modal-title" className="google-picker-title">
-                Integrasi Firebase Authentication
-              </h2>
-              <p className="google-picker-subtitle">
-                Ikuti langkah berikut untuk mengaktifkan autentikasi cloud resmi di TitraLab:
-              </p>
-            </div>
-
-            <div className="firebase-steps-list">
-              <div className="firebase-step-item">
-                <div className="step-num">1</div>
-                <div className="step-content">
-                  <strong>Buka Firebase Console</strong>
-                  <p>Kunjungi <a href="https://console.firebase.google.com/" target="_blank" rel="noreferrer" className="firebase-doc-link">console.firebase.google.com</a> dan buat atau pilih proyek Anda.</p>
-                </div>
-              </div>
-
-              <div className="firebase-step-item">
-                <div className="step-num">2</div>
-                <div className="step-content">
-                  <strong>Aktifkan Provider Autentikasi</strong>
-                  <p>Masuk ke menu <strong>Build &gt; Authentication &gt; Sign-in method</strong>, lalu aktifkan:</p>
-                  <ul className="step-sublist">
-                    <li>✔️ <strong>Email/Password</strong></li>
-                    <li>✔️ <strong>Google</strong> (pilih email dukungan proyek)</li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="firebase-step-item">
-                <div className="step-num">3</div>
-                <div className="step-content">
-                  <strong>Salin Konfigurasi ke Berkas <code>.env</code></strong>
-                  <p>Buka <strong>Project Settings (⚙️) &gt; Your apps &gt; Web App</strong>, lalu salin nilainya ke berkas <code>.env</code> di direktori root proyek ini:</p>
-                  <pre className="firebase-code-snippet">
-{`VITE_FIREBASE_API_KEY=AIzaSy...
-VITE_FIREBASE_AUTH_DOMAIN=proyek-anda.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=proyek-anda
-VITE_FIREBASE_STORAGE_BUCKET=proyek-anda.firebasestorage.app
-VITE_FIREBASE_MESSAGING_SENDER_ID=1234567890
-VITE_FIREBASE_APP_ID=1:1234567890:web:...`}
-                  </pre>
-                </div>
-              </div>
-
-              <div className="firebase-step-item">
-                <div className="step-num">4</div>
-                <div className="step-content">
-                  <strong>Mulai Ulang Dev Server</strong>
-                  <p>Setelah berkas <code>.env</code> disimpan, jalankan ulang server (<code>npm run dev</code>). Status akan otomatis berubah menjadi <strong>Firebase Auth Aktif (Cloud)</strong>.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="google-picker-footer">
-              <div className="google-footer-actions">
-                <button
-                  type="button"
-                  className="btn-google-close"
-                  onClick={() => setShowConfigModal(false)}
-                >
-                  Saya Mengerti, Tutup
                 </button>
               </div>
             </div>
