@@ -3,14 +3,16 @@ import React, { useState, useEffect } from 'react';
 /**
  * Komponen Navbar
  * Navigasi antar halaman (Beranda, Modul, Kalkulator pH, Kuis)
- * dengan indikator halaman aktif, pengalih tema laboratorium, dan menu responsif mobile.
+ * dengan indikator halaman aktif, profil akun pengguna, tombol keluar, dan pengalih tema.
  */
 export default function Navbar({ 
   theme, 
   toggleTheme, 
   activePage = 'beranda', 
   onNavigate, 
-  onHapusProgres 
+  onHapusProgres,
+  currentUser,
+  onLogout
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -135,8 +137,32 @@ export default function Navbar({
           </ul>
         </nav>
 
-        {/* Aksi Navigasi: Pengalih Tema & Tombol Pintas */}
+        {/* Aksi Navigasi: Profil Akun, Tema, Tombol Aksi */}
         <div className="nav-actions">
+          {/* Lencana Profil Siswa Terautentikasi */}
+          {currentUser && (
+            <div className="nav-user-badge" title={`Masuk sebagai ${currentUser.name} (${currentUser.email})`}>
+              {currentUser.photoURL ? (
+                <img src={currentUser.photoURL} alt="" className="user-avatar-circle" style={{ objectFit: 'cover' }} />
+              ) : (
+                <span className="user-avatar-circle" aria-hidden="true">
+                  {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'S'}
+                </span>
+              )}
+              <span className="user-name-text">{currentUser.name}</span>
+              {onLogout && (
+                <button
+                  type="button"
+                  className="btn-nav-logout"
+                  onClick={onLogout}
+                  title="Keluar dari akun"
+                >
+                  Keluar
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Pengalih Tema */}
           <button 
             type="button"
@@ -207,6 +233,35 @@ export default function Navbar({
               ✕
             </button>
           </div>
+
+          {/* Info Pengguna Mobile */}
+          {currentUser && (
+            <div className="mobile-user-card">
+              {currentUser.photoURL ? (
+                <img src={currentUser.photoURL} alt="" className="user-avatar-circle" style={{ objectFit: 'cover' }} />
+              ) : (
+                <span className="user-avatar-circle" aria-hidden="true">
+                  {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'S'}
+                </span>
+              )}
+              <div className="mobile-user-text">
+                <strong>{currentUser.name}</strong>
+                <small>{currentUser.email}</small>
+              </div>
+              {onLogout && (
+                <button
+                  type="button"
+                  className="btn-mobile-logout"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onLogout();
+                  }}
+                >
+                  Keluar
+                </button>
+              )}
+            </div>
+          )}
 
           <nav aria-label="Navigasi Menu Ponsel">
             <ul className="mobile-nav-list">
